@@ -1,0 +1,36 @@
+.app {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.user-card,
+.course-card,
+.submission-badge {
+  flex: 1 1 240px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.25rem;
+  background: #fff;
+}
+
+.user-card h3,
+.course-card h3 {
+  margin-top: 0;
+}
+
+.user-card input {
+  margin-top: 0.5rem;
+  padding: 0.4rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.user-card button {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
