@@ -1,11 +1,16 @@
 // src/components/Layout.tsx
 import { NavLink, Outlet } from "react-router";
-import useToggle from "../hooks/useToggle";
 import useAuthStore from "../store/authStore";
+import useUiStore from "../store/uiStore"; // <-- SESSION 7
+// useToggle is no longer imported here -- Layout does not own dark
+// mode any more, but the hook itself is NOT deleted: DashboardPage
+// still uses it for showDetails.
 
 function Layout() {
-  // Dark mode moves here, out of App.tsx, so every page inherits it
-  const [isDarkMode, toggleDarkMode] = useToggle(false);
+  // SESSION 7: dark mode now lives in uiStore, so it survives a
+  // refresh and any page could read/toggle it if it needed to
+  const isDarkMode = useUiStore((state) => state.isDarkMode);
+  const toggleDarkMode = useUiStore((state) => state.toggleDarkMode);
   const userName = useAuthStore((state) => state.userName);
   const logout = useAuthStore((state) => state.logout);
 

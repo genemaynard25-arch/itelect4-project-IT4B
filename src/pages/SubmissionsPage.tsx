@@ -1,16 +1,91 @@
 // src/pages/SubmissionsPage.tsx -- guarded by ProtectedRoute in App.tsx
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { ApiSubmission } from "../types/index";
 import SubmissionBadge from "../components/SubmissionBadge";
-import { allSubmissions } from "../data/mockData";
+import { fetchSubmissions, createSubmission } from "../api/client";
+// The mockData import is GONE -- allSubmissions no longer exists
 
 function SubmissionsPage() {
+  // Local, because only this one form reads it. Not store material.
+  const [repoUrl, setRepoUrl] = useState<string>("");
+  const queryClient = useQueryClient();
+
+  // 1. READ -- exactly the same useQuery pattern as CoursesPage
+  const { data, isPending, isError } = useQuery<ApiSubmission[]>({
+    queryKey: ["submissions"],
+    queryFn: fetchSubmissions,
+  });
+
+  // 2. WRITE -- mutationFn does the POST, onSuccess cleans up after it
+  const addSubmission = useMutation({
+    mutationFn: createSubmission,
+    onSuccess: () => {
+      // "the submissions list is out of date now -- go and refetch it"
+      queryClient.invalidateQueries({ queryKey: ["submissions"] });
+      setRepoUrl("");
+    },
+  });
+
+  // mutate() is what an event handler calls. It does not return the
+  // result -- we read that off addSubmission afterwards.
+  const handleAdd = (): void => {
+    addSubmission.mutate({
+      studentId: 1,
+      courseCode: "ITELECT4",
+      repoUrl: repoUrl,
+      submittedAt: new Date().toISOString(), // a STRING, not a Date
+    });
+  };
+
+  if (isPending) {
+    return (
+      <div className="animate-pulse p-6 text-gray-500">
+        Loading submissions...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-lg bg-red-50 p-4 text-red-700">
+        Could not load submissions.
+      </div>
+    );
+  }
+
   return (
     <div>
       <h2 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">
         My Submissions
       </h2>
 
+      <div className="mb-6 flex gap-2">
+        <input
+          value={repoUrl}
+          onChange={(e) => setRepoUrl(e.target.value)}
+          placeholder="github.com/you/your-repo"
+          className="w-full rounded border border-gray-300 p-2 text-sm
+            dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+        />
+        <button
+          onClick={handleAdd}
+          disabled={repoUrl === "" || addSubmission.isPending}
+          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-semibold
+            text-white transition hover:bg-blue-700 disabled:bg-gray-400"
+        >
+          {addSubmission.isPending ? "Saving..." : "Add"}
+        </button>
+      </div>
+
+      {addSubmission.isError && (
+        <p className="mb-4 text-sm text-red-700">
+          {addSubmission.error.message}
+        </p>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {allSubmissions.map((s) => (
+        {data.map((s) => (
           <SubmissionBadge key={s.id} submission={s}>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Course: {s.courseCode}
