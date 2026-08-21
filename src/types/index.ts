@@ -109,3 +109,16 @@ export const enum Role {
     Admin = "admin",
     Instructor = "instructor",
 }
+
+// ===== SESSION 7: what json-server actually returns =====
+// JSON has no Date, and json-server writes ids as strings. So what the
+// API hands back is NOT the Submission shape declared above. Both types
+// below are DERIVED from it, so Submission stays the single source of
+// truth -- add a field there and these two inherit it.
+export type ApiSubmission = Omit<Submission, "id" | "submittedAt"> & {
+    id: string; // json-server ids look like "1" or a generated string
+    submittedAt: string; // an ISO string, never a Date object
+};
+
+// What we SEND when creating one. No id yet -- the server makes it.
+export type NewSubmission = Omit<ApiSubmission, "id">;

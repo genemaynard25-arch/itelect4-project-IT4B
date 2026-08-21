@@ -1,7 +1,7 @@
-import type { Submission } from "../types/index";
+import type { ApiSubmission } from "../types/index"; // <-- was Submission
 
 interface SubmissionBadgeProps {
-  submission: Submission;
+  submission: ApiSubmission; // <-- SESSION 7: data now comes over HTTP
   children?: React.ReactNode;
 }
 

@@ -1,0 +1,50 @@
+{
+  "courses": [
+    {
+      "id": "1",
+      "code": "ITELECT4",
+      "title": "IT Elective 4",
+      "units": 3,
+      "semester": "1st Semester 2026-2027"
+    },
+    {
+      "id": "2",
+      "code": "DISMATH",
+      "title": "Discrete Mathematics",
+      "units": 3,
+      "semester": "1st Semester 2026-2027"
+    },
+    {
+      "id": "3",
+      "code": "WINSERVER",
+      "title": "Windows Server Administration",
+      "units": 3,
+      "semester": "1st Semester 2026-2027"
+    }
+  ],
+  "submissions": [
+    {
+      "id": "1",
+      "studentId": 1,
+      "courseCode": "ITELECT4",
+      "repoUrl": "github.com/juandc/itelect4-project",
+      "submittedAt": "2026-08-01T09:00:00.000Z",
+      "score": 95
+    },
+    {
+      "id": "2",
+      "studentId": 1,
+      "courseCode": "DISMATH",
+      "repoUrl": "github.com/juandc/discmath-bst",
+      "submittedAt": "2026-07-18T09:00:00.000Z"
+    },
+    {
+      "studentId": 1,
+      "courseCode": "ITELECT4",
+      "repoUrl": "github.com/test/repo",
+      "submittedAt": "2026-08-21T09:00:00.000Z",
+      "id": "diHtKmkveS4"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}

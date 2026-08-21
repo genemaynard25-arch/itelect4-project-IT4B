@@ -1,17 +1,26 @@
 // src/pages/DashboardPage.tsx
 import { useState } from "react";
-import type { User } from "../types/index";
+import { useQuery } from "@tanstack/react-query"; // <-- SESSION 7
+import type { ApiSubmission, User } from "../types/index";
 import UserCard from "../components/UserCard";
 import SubmissionBadge from "../components/SubmissionBadge";
 import useToggle from "../hooks/useToggle";
-import { student, allSubmissions } from "../data/mockData";
+import { student } from "../data/mockData"; // allSubmissions is GONE
+import { fetchSubmissions } from "../api/client"; // <-- SESSION 7
 
 function DashboardPage() {
   // These came straight from GT2's App.tsx, unchanged
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showDetails, toggleDetails] = useToggle(false);
 
-  const latestSubmission = allSubmissions[0];
+  // Same queryKey as SubmissionsPage -- one shared cache entry, so
+  // visiting either page first means the other one loads instantly.
+  const { data } = useQuery<ApiSubmission[]>({
+    queryKey: ["submissions"],
+    queryFn: fetchSubmissions,
+  });
+
+  const latestSubmission = data?.[0];
 
   return (
     <div>
@@ -38,7 +47,7 @@ function DashboardPage() {
         </div>
       </div>
 
-      {showDetails && (
+      {showDetails && latestSubmission && (
         <div className="mt-6 max-w-sm">
           <SubmissionBadge submission={latestSubmission}>
             <p>Latest submission</p>
