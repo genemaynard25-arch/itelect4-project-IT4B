@@ -6,6 +6,7 @@ import CourseCard from "../components/CourseCard";
 import usePrevious from "../hooks/usePrevious";
 import useUiStore from "../store/uiStore"; // <-- SESSION 7
 import { fetchCourses } from "../api/client"; // <-- SESSION 7
+import { Input } from "@/components/ui/input"; // <-- SESSION 8
 // useState, useEffect, useRef and the mockData import are GONE --
 // courses now come from json-server, and the search box lives in uiStore
 
@@ -55,13 +56,11 @@ function CoursesPage() {
         Courses
       </h2>
 
-      <input
+      <Input
         value={searchTerm}
         type="text"
         placeholder="Search courses..."
         onChange={handleSearchChange}
-        className="w-full rounded border border-gray-300 p-2 text-sm
-          dark:bg-gray-800 dark:border-gray-700 dark:text-white"
       />
       {previousSearch !== undefined && previousSearch !== searchTerm && (
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">

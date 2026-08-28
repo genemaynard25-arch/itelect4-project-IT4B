@@ -1,40 +1,58 @@
 // src/pages/SubmissionsPage.tsx -- guarded by ProtectedRoute in App.tsx
-import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { ApiSubmission } from "../types/index";
+import { useForm } from "react-hook-form"; // <-- SESSION 8
+import { zodResolver } from "@hookform/resolvers/zod"; // <-- SESSION 8
+import type { ApiSubmission, Course } from "../types/index";
+import { submissionSchema } from "../schemas/submissionSchema";
+import type { SubmissionFormValues } from "../schemas/submissionSchema";
 import SubmissionBadge from "../components/SubmissionBadge";
-import { fetchSubmissions, createSubmission } from "../api/client";
-// The mockData import is GONE -- allSubmissions no longer exists
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { fetchSubmissions, createSubmission, fetchCourses } from "../api/client";
+// The useState import is GONE -- useForm holds the values now
 
 function SubmissionsPage() {
-  // Local, because only this one form reads it. Not store material.
-  const [repoUrl, setRepoUrl] = useState<string>("");
   const queryClient = useQueryClient();
 
-  // 1. READ -- exactly the same useQuery pattern as CoursesPage
+  // useForm holds the values, runs the schema, and stores the errors.
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<SubmissionFormValues>({
+    resolver: zodResolver(submissionSchema),
+    mode: "onBlur",
+    defaultValues: { courseCode: "", repoUrl: "" },
+  });
+
+  // Same queryKey as CoursesPage, so this list comes out of the cache.
+  const courses = useQuery<Course[]>({
+    queryKey: ["courses"],
+    queryFn: fetchCourses,
+  });
+
   const { data, isPending, isError } = useQuery<ApiSubmission[]>({
     queryKey: ["submissions"],
     queryFn: fetchSubmissions,
   });
 
-  // 2. WRITE -- mutationFn does the POST, onSuccess cleans up after it
   const addSubmission = useMutation({
     mutationFn: createSubmission,
     onSuccess: () => {
-      // "the submissions list is out of date now -- go and refetch it"
       queryClient.invalidateQueries({ queryKey: ["submissions"] });
-      setRepoUrl("");
+      reset(); // clears every field at once
     },
   });
 
-  // mutate() is what an event handler calls. It does not return the
-  // result -- we read that off addSubmission afterwards.
-  const handleAdd = (): void => {
+  // handleSubmit only calls this after the schema passes.
+  const onSubmit = (values: SubmissionFormValues): void => {
     addSubmission.mutate({
       studentId: 1,
-      courseCode: "ITELECT4",
-      repoUrl: repoUrl,
-      submittedAt: new Date().toISOString(), // a STRING, not a Date
+      courseCode: values.courseCode,
+      repoUrl: values.repoUrl,
+      submittedAt: new Date().toISOString(),
     });
   };
 
@@ -60,23 +78,60 @@ function SubmissionsPage() {
         My Submissions
       </h2>
 
-      <div className="mb-6 flex gap-2">
-        <input
-          value={repoUrl}
-          onChange={(e) => setRepoUrl(e.target.value)}
-          placeholder="github.com/you/your-repo"
-          className="w-full rounded border border-gray-300 p-2 text-sm
-            dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-        />
-        <button
-          onClick={handleAdd}
-          disabled={repoUrl === "" || addSubmission.isPending}
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-semibold
-            text-white transition hover:bg-blue-700 disabled:bg-gray-400"
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="mb-6 grid gap-4 rounded-lg border border-gray-200 p-4
+          dark:border-gray-700"
+      >
+        <div className="grid gap-1.5">
+          <Label htmlFor="courseCode" className="text-foreground">
+            Course
+          </Label>
+          <select
+            id="courseCode"
+            {...register("courseCode")}
+            className="h-8 rounded-lg border border-input bg-background
+              px-2.5 text-sm text-foreground"
+          >
+            <option value="">Select a course...</option>
+            {courses.data?.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code}
+              </option>
+            ))}
+          </select>
+          {errors.courseCode && (
+            <p className="text-sm text-red-600">
+              {errors.courseCode.message}
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-1.5">
+          <Label htmlFor="repoUrl" className="text-foreground">
+            Repository URL
+          </Label>
+          <Input
+            id="repoUrl"
+            {...register("repoUrl")}
+            aria-invalid={errors.repoUrl ? true : undefined}
+            placeholder="https://github.com/you/your-repo"
+          />
+          {errors.repoUrl && (
+            <p className="text-sm text-red-600">{errors.repoUrl.message}</p>
+          )}
+        </div>
+
+        {/* Never disabled on "invalid": clicking it is what shows the
+            error messages. Only a save in flight disables it. */}
+        <Button
+          type="submit"
+          disabled={addSubmission.isPending}
+          className="justify-self-start"
         >
-          {addSubmission.isPending ? "Saving..." : "Add"}
-        </button>
-      </div>
+          {addSubmission.isPending ? "Saving..." : "Add submission"}
+        </Button>
+      </form>
 
       {addSubmission.isError && (
         <p className="mb-4 text-sm text-red-700">
