@@ -1,53 +1,111 @@
-// src/api/client.ts
-// Every call to json-server lives in this one file. No component calls
-// fetch directly -- when the real backend replaces json-server later,
-// only API_URL changes here instead of hunting through every page.
-import type { Course, ApiSubmission, NewSubmission } from "../types/index";
+import type {
+  Course,
+  ApiSubmission,
+  NewSubmission,
+  AuthReply,
+  ApiUser,
+} from "../types/index";
+import useAuthStore from "../store/authStore";
 
-export const API_URL = "http://localhost:3001";
+// Vite only exposes variables whose name starts with VITE_, and it
+// replaces this at BUILD time -- the value that was in .env when
+// `npm run build` ran is baked into the bundle. That is why adding it
+// in Vercel is not enough on its own: the next deploy is what picks it
+// up.
+export const API_URL = import.meta.env.VITE_API_URL;
 
-// GET /courses -> the whole list
-export async function fetchCourses(): Promise<Course[]> {
-  const res = await fetch(`${API_URL}/courses`);
+// The same guard db.ts has for MONGODB_URI, for the same reason: a
+// sentence now beats every call going to "undefined/api/courses".
+if (!API_URL) {
+  throw new Error(
+    "VITE_API_URL is missing. Copy .env.example to .env, fill it in, " +
+      "and restart npm run dev.",
+  );
+}
+
+// Every call goes through here: the host, the JSON header, the token
+// when there is one, and the API's own message when it refuses.
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  // getState(), not the useAuthStore hook -- this is not a component,
+  // and it does not need to re-render when the token changes. It only
+  // needs whatever the token is at the moment of the call.
+  const token = useAuthStore.getState().token;
+
+  const res = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      // The exact header requireAuth reads: the word Bearer, one
+      // space, then the token. No token in the store means no header
+      // at all, which is what the public course routes want.
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init.headers,
+    },
+  });
+
   if (!res.ok) {
-    throw new Error("Could not load courses");
+    // Every refusal this API sends has a message field. Reading it is
+    // the difference between "Could not save the submission" and
+    // "repoUrl must start with https://github.com/".
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Request failed (${res.status})`);
   }
+
   return res.json();
 }
 
-// GET /courses?code=ITELECT4 -> an ARRAY of matches, not one course
-export async function fetchCourseByCode(code: string): Promise<Course> {
-  const res = await fetch(`${API_URL}/courses?code=${code}`);
-  if (!res.ok) {
-    throw new Error("Could not load that course");
-  }
-  const matches: Course[] = await res.json();
-  if (matches.length === 0) {
-    throw new Error(`No course found with code "${code}".`);
-  }
-  return matches[0];
+// ---- courses: public. request() sends no token, and none is needed.
+
+export function fetchCourses(): Promise<Course[]> {
+  return request<Course[]>("/api/courses");
 }
 
-// GET /submissions
-export async function fetchSubmissions(): Promise<ApiSubmission[]> {
-  const res = await fetch(`${API_URL}/submissions`);
-  if (!res.ok) {
-    throw new Error("Could not load submissions");
-  }
-  return res.json();
+// Session 7 asked json-server for /courses?code=ITELECT4 and read
+// matches[0], because json-server has no route for a single row. This
+// one does, so there is no array to unwrap -- and no "No course found"
+// message written here either. A bad code answers 404 and request()
+// throws the sentence the API sent.
+export function fetchCourseByCode(code: string): Promise<Course> {
+  return request<Course>(`/api/courses/${code}`);
 }
 
-// POST /submissions -> the row the server saved, with the id it made
-export async function createSubmission(
-  newSubmission: NewSubmission
+// ---- submissions: private. The token goes on automatically.
+
+export function fetchSubmissions(): Promise<ApiSubmission[]> {
+  return request<ApiSubmission[]>("/api/submissions");
+}
+
+export function createSubmission(
+  newSubmission: NewSubmission,
 ): Promise<ApiSubmission> {
-  const res = await fetch(`${API_URL}/submissions`, {
+  return request<ApiSubmission>("/api/submissions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(newSubmission),
   });
-  if (!res.ok) {
-    throw new Error("Could not save the submission");
-  }
-  return res.json();
+}
+
+// ---- auth: the two routes that make a session exist
+
+export function registerUser(body: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<ApiUser> {
+  return request<ApiUser>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function loginUser(body: {
+  email: string;
+  password: string;
+}): Promise<AuthReply> {
+  return request<AuthReply>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }

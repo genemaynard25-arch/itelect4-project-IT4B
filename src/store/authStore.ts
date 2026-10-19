@@ -1,35 +1,52 @@
 // src/store/authStore.ts
 // The nav bar needs to know whether anyone is logged in. A store is a box
 // any component can read from directly, without passing props down.
-import { create } from "zustand";
-import { persist } from "zustand/middleware"; // <-- SESSION 7
 
-// The shape of the store: its data AND the functions that change it
+// ===== SESSIONS 6-8: the store invented its own token ================
+// interface AuthState {
+//   token: string | null;
+//   userName: string | null;
+//   login: (name: string) => void;
+//   logout: () => void;
+// }
+//
+//       login: (name) => set({ token: `demo-token-${name}`, userName: name }),
+//
+// NOTE: That token was a string this file made up. Nothing checked it,
+//       because nothing could -- ProtectedRoute only ever asked whether
+//       it was null. A real token is issued by /api/auth/login and
+//       signed with a secret only the API knows.
+// ===== SESSION 10: the store keeps a token it was given ==============
+
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
 interface AuthState {
   token: string | null;
   userName: string | null;
-  login: (name: string) => void;
+  // Two values in, nothing invented. The login page gets them from
+  // the API and hands them here.
+  setSession: (token: string, userName: string) => void;
   logout: () => void;
 }
 
-// SESSION 7: wrapped in persist() so refreshing the page no longer logs
-// the user out. The store's own shape and every component that reads it
-// stay exactly the same -- persist is a wrapper, not a rewrite.
+// This file deliberately does not import ../api/client. client.ts
+// reads the token out of this store on every request, so a store that
+// called client.ts back would be an import loop. Keeping the fetching
+// in the pages and the state here means the arrow only points one way.
 const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       token: null,
       userName: null,
-      login: (name) => set({ token: `demo-token-${name}`, userName: name }),
+      setSession: (token, userName) => set({ token, userName }),
       logout: () => set({ token: null, userName: null }),
     }),
     {
       name: "itelect4-auth", // the localStorage key it writes to
       partialize: (state) => ({
-        // save ONLY these two fields -- login/logout are functions and
-        // can't become JSON, and a real token should never live here
-        // once Module 4 issues real JWTs (that belongs in an httpOnly
-        // cookie the server sets, which JS can't read at all)
+        // save ONLY these two fields -- setSession/logout are functions
+        // and can't become JSON
         token: state.token,
         userName: state.userName,
       }),
@@ -38,3 +55,9 @@ const useAuthStore = create<AuthState>()(
 );
 
 export default useAuthStore;
+
+// The token is good for two hours -- that is the expiresIn in
+// itelect4-backend's login route. Persist keeps it across a reload,
+// so the app can come back holding one the API has already stopped
+// accepting: the next request answers 401, and Log out then log in
+// again is the fix.

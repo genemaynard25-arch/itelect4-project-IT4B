@@ -47,13 +47,17 @@ function SubmissionsPage() {
   });
 
   // handleSubmit only calls this after the schema passes.
+  // const onSubmit = (values: SubmissionFormValues): void => {
+  //   addSubmission.mutate({
+  //     studentId: 1,
+  //     courseCode: values.courseCode,
+  //     repoUrl: values.repoUrl,
+  //     submittedAt: new Date().toISOString(),
+  //   });
+  // };
+
   const onSubmit = (values: SubmissionFormValues): void => {
-    addSubmission.mutate({
-      studentId: 1,
-      courseCode: values.courseCode,
-      repoUrl: values.repoUrl,
-      submittedAt: new Date().toISOString(),
-    });
+    addSubmission.mutate(values);
   };
 
   if (isPending) {
