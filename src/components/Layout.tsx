@@ -20,8 +20,7 @@ function Layout() {
   const idleLink = `${base} text-gray-700 hover:bg-gray-200 dark:text-gray-300`;
 
   // NavLink hands this function an isActive flag on every render
-  const linkClass = ({ isActive }: { isActive: boolean }): string =>
-    isActive ? activeLink : idleLink;
+  const linkClass = ({ isActive }: { isActive: boolean }): string => isActive ? activeLink : idleLink;
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
@@ -44,6 +43,10 @@ function Layout() {
           <NavLink to="/submissions" className={linkClass}>
             Submissions
           </NavLink>
+          {/* Session 11: the one page that talks to Gemini */}
+          <NavLink to="/review" className={linkClass}>
+            AI Review
+          </NavLink>
 
           {userName === null ? (
             <>
@@ -58,7 +61,7 @@ function Layout() {
                 dark:text-gray-300">
               Logout ({userName})
             </button>
-          )}          
+          )}
           <button
             onClick={toggleDarkMode}
             className="ml-auto rounded bg-gray-800 px-3 py-1.5 text-sm
