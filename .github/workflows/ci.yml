@@ -1,12 +1,4 @@
-name: CI
- 
-on: push
- 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    # ===== SESSION 12: a NEW file =========================================
+# ===== SESSION 12: a NEW file =========================================
 # GitHub reads every .yml file in .github/workflows/ and runs it when
 # its "on" event happens. This one runs on every push, to any branch.
 name: CI
